@@ -122,6 +122,7 @@ pub enum PhotometricInterpretation(u16) {
     CMYK = 5,
     YCbCr = 6,
     CIELab = 8,
+    CFA = 32803,
 }
 }
 
