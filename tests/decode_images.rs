@@ -385,3 +385,116 @@ fn test_stripped_image_overflow() {
         unexpected => panic!("Unexpected error {}", unexpected),
     }
 }
+
+#[test]
+fn oom() {
+    let image = [
+        73, 73, 42, 0, 8, 0, 0, 0, 8, 0, 0, 1, 4, 0, 1, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 40, 1, 0, 0,
+        0, 158, 0, 0, 251, 3, 1, 3, 0, 1, 0, 0, 0, 7, 0, 0, 0, 6, 1, 3, 0, 1, 0, 0, 0, 2, 0, 0, 0,
+        17, 1, 4, 0, 1, 0, 0, 0, 3, 77, 0, 0, 1, 1, 3, 0, 1, 0, 0, 0, 3, 128, 0, 0, 22, 1, 4, 0, 1,
+        0, 0, 0, 40, 0, 0, 0, 23, 1, 4, 0, 1, 0, 0, 0, 178, 48, 178, 178, 178, 178, 162, 178,
+    ];
+
+    let mut decoder = tiff::decoder::Decoder::new(std::io::Cursor::new(&image)).unwrap();
+
+    let err = decoder.read_image().unwrap_err();
+
+    match err {
+        tiff::TiffError::LimitsExceeded => {}
+        unexpected => panic!("Unexpected error {}", unexpected),
+    }
+}
+
+#[test]
+fn oom_2() {
+    let image = [
+        73, 73, 42, 0, 8, 0, 0, 0, 8, 0, 0, 1, 4, 0, 1, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 40, 1, 0, 0,
+        0, 158, 0, 0, 251, 3, 1, 3, 0, 1, 0, 0, 0, 5, 0, 0, 0, 6, 1, 3, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+        17, 1, 4, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 3, 0, 1, 0, 0, 0, 3, 128, 0, 0, 22, 1, 4, 0, 1,
+        0, 0, 0, 40, 0, 0, 0, 23, 1, 4, 0, 1, 0, 0, 0, 48, 178, 178, 178, 0, 1, 0, 13, 13,
+    ];
+
+    let mut decoder = tiff::decoder::Decoder::new(std::io::Cursor::new(&image)).unwrap();
+
+    let err = decoder.read_image().unwrap_err();
+
+    match err {
+        tiff::TiffError::LimitsExceeded => {}
+        unexpected => panic!("Unexpected error {}", unexpected),
+    }
+}
+
+#[test]
+fn invalid_jpeg_tag() {
+    use tiff::tags;
+    use tiff::{TiffError, TiffFormatError};
+
+    let image = [
+        73, 73, 42, 0, 8, 0, 0, 0, 15, 0, 0, 254, 44, 1, 0, 0, 0, 0, 0, 32, 0, 0, 0, 1, 4, 0, 1, 0,
+        0, 0, 0, 1, 0, 0, 91, 1, 1, 0, 0, 0, 0, 0, 242, 4, 0, 0, 0, 22, 0, 56, 77, 0, 77, 1, 0, 0,
+        73, 42, 0, 1, 4, 0, 1, 0, 0, 0, 4, 0, 8, 0, 0, 1, 4, 0, 1, 0, 0, 0, 158, 0, 0, 251, 3, 1,
+        3, 0, 1, 0, 0, 0, 7, 0, 0, 0, 6, 1, 3, 0, 1, 0, 0, 0, 2, 0, 0, 0, 17, 1, 4, 0, 1, 0, 0, 0,
+        0, 0, 0, 0, 1, 1, 3, 0, 1, 0, 0, 0, 0, 0, 0, 4, 61, 1, 18, 0, 1, 0, 0, 0, 202, 0, 0, 0, 17,
+        1, 100, 0, 129, 0, 0, 0, 0, 0, 0, 0, 232, 254, 252, 255, 254, 255, 255, 255, 1, 29, 0, 0,
+        22, 1, 3, 0, 1, 0, 0, 0, 16, 0, 0, 0, 23, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 123, 73, 254, 0,
+        73,
+    ];
+
+    let mut decoder = tiff::decoder::Decoder::new(std::io::Cursor::new(&image)).unwrap();
+
+    let err = decoder.read_image().unwrap_err();
+
+    match err {
+        TiffError::FormatError(TiffFormatError::InvalidTagValueType(tags::Tag::JPEGTables)) => {}
+        unexpected => panic!("Unexpected error {}", unexpected),
+    }
+}
+
+#[test]
+fn invalid_jpeg_tag_2() {
+    use tiff::tags;
+    use tiff::{TiffError, TiffFormatError};
+
+    let image = [
+        73, 73, 42, 0, 8, 0, 0, 0, 16, 0, 254, 0, 4, 0, 1, 0, 0, 0, 0, 0, 0, 242, 0, 1, 4, 0, 1, 0,
+        0, 0, 0, 129, 16, 0, 1, 1, 4, 0, 1, 0, 0, 0, 214, 0, 0, 248, 253, 1, 3, 0, 1, 0, 0, 0, 64,
+        0, 0, 0, 3, 1, 3, 0, 1, 0, 0, 0, 7, 0, 0, 0, 6, 1, 3, 0, 1, 0, 0, 0, 1, 0, 0, 64, 14, 1, 0,
+        2, 0, 0, 148, 0, 206, 0, 0, 0, 17, 1, 4, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+        1, 0, 0, 0, 22, 1, 4, 0, 17, 0, 0, 201, 1, 0, 0, 0, 23, 1, 2, 0, 20, 0, 0, 0, 194, 0, 0, 0,
+        91, 1, 7, 0, 5, 0, 0, 0, 64, 0, 0, 0, 237, 254, 65, 255, 255, 255, 255, 255, 1, 0, 0, 0,
+        22, 1, 4, 0, 1, 0, 0, 0, 42, 0, 0, 0, 23, 1, 255, 255, 255, 255, 255, 36, 36, 0, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 36, 73, 73, 0, 42, 36, 36, 36, 36, 0, 0, 8, 0,
+    ];
+
+    let mut decoder = tiff::decoder::Decoder::new(std::io::Cursor::new(&image)).unwrap();
+
+    let err = decoder.read_image().unwrap_err();
+
+    match err {
+        TiffError::FormatError(TiffFormatError::InvalidTagValueType(tags::Tag::JPEGTables)) => {}
+        unexpected => panic!("Unexpected error {}", unexpected),
+    }
+}
+
+#[test]
+fn multiple_images_strip_height() {
+    use tiff::TiffError;
+
+    let image = [
+        73, 73, 42, 0, 8, 0, 0, 0, 8, 0, 0, 1, 4, 0, 1, 0, 0, 0, 2, 0, 0, 0, 61, 1, 9, 0, 46, 22,
+        128, 0, 0, 0, 0, 1, 6, 1, 3, 0, 1, 0, 0, 0, 0, 0, 0, 0, 17, 1, 4, 0, 27, 0, 0, 0, 0, 0, 0,
+        0, 1, 1, 3, 0, 1, 0, 0, 0, 17, 1, 0, 231, 22, 1, 1, 0, 1, 0, 0, 0, 130, 0, 0, 0, 23, 1, 4,
+        0, 14, 0, 0, 0, 0, 0, 0, 0, 133, 133, 133, 77, 77, 77, 0, 0, 22, 128, 0, 255, 255, 255,
+        255, 255,
+    ];
+
+    let mut decoder = tiff::decoder::Decoder::new(std::io::Cursor::new(&image)).unwrap();
+
+    let _ = decoder.read_image().unwrap();
+    let err = decoder.read_image().unwrap_err();
+
+    match err {
+        TiffError::IntSizeError => {}
+        unexpected => panic!("Unexpected error {}", unexpected),
+    }
+}
